@@ -1,0 +1,15 @@
+package com.example.eventure.ui.theme
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
+import androidx.compose.ui.unit.dp
+
+val BottomCardShape = Shapes(
+    large = RoundedCornerShape(
+        topStart = 50.dp, topEnd = 50.dp
+    )
+)
+
+val inputBoxShape = Shapes(
+    medium = RoundedCornerShape(12.dp)
+)
