@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Eventure" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.Eventure.Splash" parent="Theme.SplashScreen">
+        <!-- Correct splash screen configuration -->
+        <item name="windowSplashScreenBackground">@drawable/app_bg</item>
+        <item name="windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/Theme.Eventure</item>
+    </style>
+
+</resources>
