@@ -1,13 +1,12 @@
-package com.example.eventuree.api
+package com.example.eventuree.data.api
 
-import com.example.eventuree.models.FollowSocietyRequest
-import com.example.eventuree.models.FollowSocietyResponse
-import com.example.eventuree.models.PersonalizedEventsResponse
-import com.example.eventuree.models.getAllSocietiesResponse
+import com.example.eventuree.data.models.FollowSocietyRequest
+import com.example.eventuree.data.models.FollowSocietyResponse
+import com.example.eventuree.data.models.PersonalizedEventsResponse
+import com.example.eventuree.data.models.getAllSocietiesResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 

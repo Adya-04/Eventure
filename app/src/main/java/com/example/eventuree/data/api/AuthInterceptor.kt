@@ -1,4 +1,4 @@
-package com.example.eventuree.api
+package com.example.eventuree.data.api
 
 import com.example.eventuree.pref.PrefDatastore
 import kotlinx.coroutines.flow.firstOrNull

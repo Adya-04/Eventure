@@ -43,7 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.eventuree.models.EventItem
+import com.example.eventuree.data.models.EventItem
 import com.example.eventuree.ui.theme.BlueMainColor
 import com.example.eventuree.ui.theme.Montserrat
 import com.example.eventuree.ui.theme.TopCardShape

@@ -1,4 +1,4 @@
-package com.example.eventuree.models
+package com.example.eventuree.data.models
 
 data class SignupSocietyRequest(
     val admissionNumber: String,

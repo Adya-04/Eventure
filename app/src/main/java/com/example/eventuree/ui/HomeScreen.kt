@@ -30,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -67,13 +68,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.eventuree.ui.theme.BlueMainColor
 import com.example.eventuree.ui.theme.TopCardShape
 import kotlinx.coroutines.launch
 import com.example.eventuree.R
-import com.example.eventuree.models.BottomNavItem
-import com.example.eventuree.models.FollowSocietyResponse
+import com.example.eventuree.data.models.BottomNavItem
+import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.ui.components.MenuItem
 import com.example.eventuree.ui.theme.Montserrat
 import com.example.eventuree.utils.NetworkResult
@@ -84,9 +86,7 @@ import com.example.eventuree.viewmodels.MainViewModel
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    mainViewModel: MainViewModel
-) {
+fun HomeScreen() {
 
     var selectedItemIndex by rememberSaveable {
         mutableStateOf(0)
@@ -99,7 +99,7 @@ fun HomeScreen(
             title = "For You",
             selectedIcon = R.drawable.home_selected_icon,
             unselectedIcon = R.drawable.home_unselected_icon,
-            screen = { ScreenContent(mainViewModel) },
+            screen = { ScreenContent() },
             topBar = {
                 TopBar(
                     title = "", onOpenDrawer = {
@@ -331,30 +331,20 @@ fun TopBar(
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenContent(
-    mainViewModel: MainViewModel
-) {
-    val eventsState by mainViewModel.getPersEvents.collectAsState()
-    val societiesState by mainViewModel.getSocieties.collectAsState()
-    val followState by mainViewModel.followSociety.collectAsState()
+fun ScreenContent() {
+//    val eventsState by mainViewModel.getPersEvents.collectAsState()
+//    val societiesState by mainViewModel.getSocieties.collectAsState()
+//    val followState by mainViewModel.followSociety.collectAsState()
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val uiState by mainViewModel.uiState.collectAsState()
+    val userMessage by mainViewModel.userMessage.collectAsState()
     val context = LocalContext.current
 
-    LaunchedEffect(Unit) {
-        mainViewModel.fetchAllSocieties()
-    }
-
-    LaunchedEffect(followState) {
-        when (followState) {
-            is NetworkResult.Success -> {
-                val response = (followState as NetworkResult.Success<FollowSocietyResponse>).data
-                Toast.makeText(context, response?.message ?: "Followed successfully", Toast.LENGTH_SHORT).show()
-                mainViewModel.resetFollowState()
-            }
-            is NetworkResult.Error -> {
-                Toast.makeText(context, followState.message ?: "Something went wrong", Toast.LENGTH_SHORT).show()
-                mainViewModel.resetFollowState()
-            }
-            else -> {}
+    // Handle user messages (snackbar/toast)
+    LaunchedEffect(userMessage) {
+        userMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            mainViewModel.userMessageShown()
         }
     }
 
@@ -407,13 +397,15 @@ fun ScreenContent(
                 tint = null
             )
         }
-        when (eventsState) {
+        when (uiState.personalizedEvents) {
             is NetworkResult.Loading -> {
-                Text("Loading...", modifier = Modifier.padding(20.dp))
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
 
             is NetworkResult.Success -> {
-                val data = (eventsState as NetworkResult.Success).data
+                val data = (uiState.personalizedEvents as NetworkResult.Success).data
                 LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
                     data?.events?.let { eventsList ->
                         items(eventsList.size) { index ->
@@ -432,7 +424,7 @@ fun ScreenContent(
 
             is NetworkResult.Error -> {
                 Text(
-                    "Error: ${(eventsState as NetworkResult.Error).message}",
+                    "Error: ${uiState.userMessage}",
                     modifier = Modifier.padding(20.dp)
                 )
             }
@@ -508,13 +500,13 @@ fun ScreenContent(
                 )
             )
             // Scrollable Circle Buttons
-            when (societiesState) {
+            when (uiState.societies) {
                 is NetworkResult.Loading -> {
                     Text("Loading societies...", modifier = Modifier.padding(16.dp))
                 }
 
                 is NetworkResult.Success -> {
-                    val societies = (societiesState as NetworkResult.Success).data?.societies
+                    val societies = (uiState.societies as NetworkResult.Success).data?.societies
                     if (!societies.isNullOrEmpty()) {
                         LazyRow(
                             modifier = Modifier.padding(vertical = 12.dp),
@@ -528,7 +520,7 @@ fun ScreenContent(
                                         logoUrl = logoUrl,
                                         name = society.name,
                                         societyId = society.id,
-                                        mainViewModel = mainViewModel
+                                        onFollowClick = {mainViewModel.followSociety(society.id)}
                                     )
 
                             }
@@ -537,7 +529,7 @@ fun ScreenContent(
                 }
 
                 is NetworkResult.Error -> {
-                    Text("Error: ${(societiesState as NetworkResult.Error).message}")
+                    Text("Error: ${uiState.userMessage}")
                 }
 
                 else -> {}
@@ -740,7 +732,7 @@ fun CategoryCirclewithFollow(
     logoUrl: String,
     name: String,
     societyId: String,
-    mainViewModel: MainViewModel
+    onFollowClick: () -> Unit
 ) {
 
     Column(
@@ -778,9 +770,7 @@ fun CategoryCirclewithFollow(
         )
 
         Button(
-            onClick = {
-                    mainViewModel.followSociety(societyId)
-            },
+            onClick = onFollowClick,
             modifier = Modifier
                 .padding(top = 6.dp)
                 .height(28.dp),

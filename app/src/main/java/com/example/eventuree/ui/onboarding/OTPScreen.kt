@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.eventuree.R
-import com.example.eventuree.models.VerifyOTPRequest
+import com.example.eventuree.data.models.VerifyOTPRequest
 import com.example.eventuree.ui.components.NextButton
 import com.example.eventuree.ui.components.OtpInputField
 import com.example.eventuree.ui.theme.Montserrat
