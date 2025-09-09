@@ -75,13 +75,12 @@ import com.example.eventuree.ui.theme.TopCardShape
 import kotlinx.coroutines.launch
 import com.example.eventuree.R
 import com.example.eventuree.data.models.BottomNavItem
-import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.ui.components.MenuItem
 import com.example.eventuree.ui.theme.Montserrat
 import com.example.eventuree.utils.NetworkResult
 import com.example.eventuree.utils.getDay
 import com.example.eventuree.utils.getMonth
-import com.example.eventuree.viewmodels.MainViewModel
+import com.example.eventuree.viewmodels.HomeViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,7 +137,7 @@ fun HomeScreen() {
             title = "Profile",
             selectedIcon = R.drawable.profile_sel_icon,
             unselectedIcon = R.drawable.profile_unsel_icon,
-            screen = { ProfileScreen() },
+            screen = { ProfileScreen(prefsViewModel = hiltViewModel(), profileViewModel = hiltViewModel()) },
             topBar = {
                 TopBar(title = " Profile", onOpenDrawer = {
                     scope.launch { drawerState.open() }
@@ -332,19 +331,15 @@ fun TopBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenContent() {
-//    val eventsState by mainViewModel.getPersEvents.collectAsState()
-//    val societiesState by mainViewModel.getSocieties.collectAsState()
-//    val followState by mainViewModel.followSociety.collectAsState()
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val uiState by mainViewModel.uiState.collectAsState()
-    val userMessage by mainViewModel.userMessage.collectAsState()
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val uiState by homeViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // Handle user messages (snackbar/toast)
-    LaunchedEffect(userMessage) {
-        userMessage?.let { message ->
+
+    LaunchedEffect(uiState.userMessage) {
+        uiState.userMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-            mainViewModel.userMessageShown()
+            homeViewModel.userMessageShown()
         }
     }
 
@@ -397,39 +392,39 @@ fun ScreenContent() {
                 tint = null
             )
         }
-        when (uiState.personalizedEvents) {
-            is NetworkResult.Loading -> {
+        when {
+            uiState.isLoading -> {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
 
-            is NetworkResult.Success -> {
-                val data = (uiState.personalizedEvents as NetworkResult.Success).data
-                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
-                    data?.events?.let { eventsList ->
-                        items(eventsList.size) { index ->
-                            val event = eventsList[index]
-                            EventCard(
-                                title = event.name,
-                                location = event.venue,
-                                date = getDay(event.startTime),
-                                month = getMonth(event.startTime), // you can parse event.startTime properly into month
-                                goingCount = event.goingCount
-                            )
-                        }
-                    }
-                }
-            }
-
-            is NetworkResult.Error -> {
+            uiState.errorMessage != null -> {
                 Text(
-                    "Error: ${uiState.userMessage}",
+                    "Error: ${uiState.errorMessage}",
                     modifier = Modifier.padding(20.dp)
                 )
             }
 
-            else -> {}
+            else -> {
+                // Personalized Events
+                uiState.personalizedEvents?.let { data ->
+                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
+                        data.events?.let { eventsList ->
+                            items(eventsList.size) { index ->
+                                val event = eventsList[index]
+                                EventCard(
+                                    title = event.name,
+                                    location = event.venue,
+                                    date = getDay(event.startTime),
+                                    month = getMonth(event.startTime),
+                                    goingCount = event.goingCount
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         //Rate Event Card
@@ -500,42 +495,30 @@ fun ScreenContent() {
                 )
             )
             // Scrollable Circle Buttons
-            when (uiState.societies) {
-                is NetworkResult.Loading -> {
-                    Text("Loading societies...", modifier = Modifier.padding(16.dp))
-                }
 
-                is NetworkResult.Success -> {
-                    val societies = (uiState.societies as NetworkResult.Success).data?.societies
-                    if (!societies.isNullOrEmpty()) {
-                        LazyRow(
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(societies.size) { index ->
-                                val society = societies[index]
-                                val logoUrl = society.logo ?: "" // default empty
+            uiState.societies?.let { societiesData ->
+                if (!societiesData.societies.isNullOrEmpty()) {
+                    LazyRow(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(societiesData.societies.size) { index ->
+                            val society = societiesData.societies[index]
+                            val logoUrl = society.logo ?: ""
 
-                                CategoryCirclewithFollow(
-                                        logoUrl = logoUrl,
-                                        name = society.name,
-                                        societyId = society.id,
-                                        onFollowClick = {mainViewModel.followSociety(society.id)}
-                                    )
-
-                            }
+                            CategoryCirclewithFollow(
+                                logoUrl = logoUrl,
+                                name = society.name,
+                                societyId = society.id,
+                                onFollowClick = { homeViewModel.followSociety(society.id) }
+                            )
                         }
                     }
+                } else {
+                    Text("No societies available")
                 }
-
-                is NetworkResult.Error -> {
-                    Text("Error: ${uiState.userMessage}")
-                }
-
-                else -> {}
             }
         }
-
     }
 }
 

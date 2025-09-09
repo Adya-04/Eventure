@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.eventuree.data.api.MainApi
 import com.example.eventuree.data.models.FollowSocietyRequest
 import com.example.eventuree.data.models.FollowSocietyResponse
+import com.example.eventuree.data.models.GetUserDetailsResponse
 import com.example.eventuree.data.models.PersonalizedEventsResponse
 import com.example.eventuree.data.models.getAllSocietiesResponse
 import com.example.eventuree.utils.NetworkResult
@@ -76,4 +77,24 @@ class MainRepository @Inject constructor(private val mainApi: MainApi) {
         }
     }
 
+    suspend fun fetchUserDetails(id: String): NetworkResult<GetUserDetailsResponse> {
+        return try {
+            val response = mainApi.getUserDetails(id)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    NetworkResult.Success(body)   // ✅ always non-null here
+                } else {
+                    NetworkResult.Error("Response body is null")
+                }
+            } else {
+                val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
+                NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
+            }
+        } catch (e: SocketTimeoutException) {
+            NetworkResult.Error("Please try again!")
+        } catch (e: Exception) {
+            NetworkResult.Error("Unexpected error occurred")
+        }
+    }
 }

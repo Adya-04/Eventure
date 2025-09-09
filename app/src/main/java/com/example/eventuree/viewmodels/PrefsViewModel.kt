@@ -13,6 +13,7 @@ class PrefsViewModel @Inject constructor(
     private val prefs: PrefDatastore
 ) : ViewModel() {
 
+    //Expose token
     val token: Flow<String> = prefs.getToken()
 
     fun saveToken(token: String) {
@@ -20,11 +21,25 @@ class PrefsViewModel @Inject constructor(
             prefs.saveToken(token)
         }
     }
-
-    fun clearToken() {
+    fun clearAll() {
         viewModelScope.launch {
-            prefs.saveToken("")
+            prefs.clearAll()
         }
     }
 
+    val userId: Flow<String> = prefs.getUserId()
+
+    fun saveUserId(userId: String) {
+        viewModelScope.launch {
+            prefs.saveUserId(userId)
+        }
+    }
+
+    val userName: Flow<String> = prefs.getUserName()
+
+    fun saveUserName(userName: String) {
+        viewModelScope.launch {
+            prefs.saveUserName(userName)
+        }
+    }
 }

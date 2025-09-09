@@ -98,6 +98,8 @@ fun SigninScreen(
                             // Existing user - proceed with login
                             Log.d("Login token ", response.token)
                             prefsViewModel.saveToken(response.token)
+                            prefsViewModel.saveUserId(response.user.id)
+                            prefsViewModel.saveUserName(response.user.name)
                             authViewModel.setLogin(true)
                             onSignInComplete()
                         } else {
@@ -281,6 +283,8 @@ fun SigninScreen(
                     isButtonEnabled = true
                     loginState.data?.let {
                         prefsViewModel.saveToken(it.accessToken)
+                        prefsViewModel.saveUserName(it.user.name)
+                        prefsViewModel.saveUserId(it.user.id)
                     }
                     Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
                     authViewModel.setLogin(true)
