@@ -1,7 +1,10 @@
 package com.example.eventuree.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,12 +19,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,17 +37,26 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.eventuree.ui.theme.BlueMainColor
 import com.example.eventuree.ui.theme.TopCardShape
 import com.example.eventuree.R
+import com.example.eventuree.data.models.EventItem
+import com.example.eventuree.data.models.Events
 import com.example.eventuree.ui.theme.Montserrat
+import com.example.eventuree.utils.formatEventDate
+import com.example.eventuree.viewmodels.ExploreViewModel
 
-@Preview(showBackground = true)
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ExploreScreen() {
+fun ExploreScreen(exploreViewModel: ExploreViewModel) {
+
+    val uiState by exploreViewModel.uiState.collectAsState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         Card(
             colors = CardDefaults.cardColors(containerColor = BlueMainColor),
@@ -49,24 +65,75 @@ fun ExploreScreen() {
                 .height(100.dp),
             shape = TopCardShape.large
         ) {
-            CategoryChips()
+            CategoryChips { category ->
+                when (category) {
+                    "All" -> exploreViewModel.fetchAllEvents(1, 10)
+                    "Trending" -> exploreViewModel.fetchTrendingEvents()
+                    "Technical" -> exploreViewModel.fetchFilteredEvents("technical", 1, 10)
+                    "Cultural" -> exploreViewModel.fetchFilteredEvents("cultural", 1, 10)
+                }
+            }
         }
         Spacer(Modifier.height(18.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            EventListScreen()
+
+        when {
+            uiState.isLoading -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            uiState.errorMessage != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Error: ${uiState.errorMessage}",
+                        color = Color.Red,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+
+            else -> {
+                val eventsList = when (uiState.selectedCategory) {
+                    "All" -> uiState.allEvents?.events
+                    "Trending" -> uiState.trendingEvents?.events
+                    "Technical" -> uiState.technicalEvents?.events
+                    "Cultural" -> uiState.culturalEvents?.events
+                    else -> emptyList()
+                }
+                if (eventsList.isNullOrEmpty()) {
+                    Text(
+                        text = "You've no events",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    LazyColumn {
+                        items(eventsList.size) { index ->
+                            EventItem(event = eventsList[index])
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryChips() {
+fun CategoryChips(onCategorySelected: (String) -> Unit) {
     val categories = listOf(
+        Triple(R.drawable.all_event_icon, "All", Color(0xFF6B4F3A)),
         Triple(R.drawable.hot_icon, "Trending", Color(0xFFD11D11)),
         Triple(R.drawable.technical_icon, "Technical", Color(0xFFCA8C20)), // orange shade
         Triple(R.drawable.music_icon, "Cultural", Color(0xFF0AB22C))
@@ -85,6 +152,7 @@ fun CategoryChips() {
                     .padding(end = 12.dp)
                     .background(color, shape = RoundedCornerShape(50))
                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable { onCategorySelected(label) }
             ) {
                 Icon(
                     painter = painterResource(icon),
@@ -108,62 +176,12 @@ fun CategoryChips() {
     }
 }
 
-@Composable
-fun EventListScreen() {
-    val events = listOf(
-        Event(
-            "Jo Malone London’s Mother’s Day Presents",
-            "Wed, Apr 28 • 5:30 PM",
-            "Radius Gallery - Santa Cruz, CA",
-            R.drawable.event_img
-        ),
-        Event(
-            "A Virtual Evening of Smooth Jazz",
-            "Sat, May 1 • 2:00 PM",
-            "Lot 13 • Oakland, CA",
-            R.drawable.event_img
-        ),
-        Event(
-            "Women’s Leadership Conference 2021",
-            "Sat, Apr 24 • 1:30 PM",
-            "53 Bush St • San Francisco, CA",
-            R.drawable.event_img
-        ),
-        Event(
-            "International Kids Safe Parents Night Out",
-            "Fri, Apr 23 • 6:00 PM",
-            "Lot 13 • Oakland, CA",
-            R.drawable.event_img
-        ),
-        Event(
-            "Collectivity Plays the Music of Jimi",
-            "Mon, Jun 21 • 10:00 PM",
-            "Lot 13 • Oakland, CA",
-            R.drawable.event_img
-        )
-    )
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(8.dp)
-    ) {
-        items(events) { event ->
-            EventItem(event)
-        }
-    }
-}
-
-data class Event(
-    val title: String,
-    val dateTime: String,
-    val location: String,
-    val imageRes: Int
-)
-
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventItem(event: Event) {
+fun EventItem(event: Events) {
+    val formattedDate = formatEventDate(event.startTime)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,21 +195,27 @@ fun EventItem(event: Event) {
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            Image(
-                painter = painterResource(id = event.imageRes),
+            val imageModel = if (event.eventPic.isNullOrEmpty()) {
+                R.drawable.event_img // <-- your default drawable
+            } else {
+                event.eventPic
+            }
+
+            AsyncImage(
+                model = imageModel,
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .width(70.dp)
                     .height(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column {
                 Text(
-                    text = event.dateTime,
+                    text = formattedDate,
                     style = TextStyle(
                         color = Color(0xFF5669FF),
                         fontSize = 12.sp,
@@ -200,7 +224,7 @@ fun EventItem(event: Event) {
                     )
                 )
                 Text(
-                    text = event.title,
+                    text = event.name,
                     style = TextStyle(
                         color = Color(0xFF120D26),
                         fontSize = 15.sp,
@@ -219,7 +243,7 @@ fun EventItem(event: Event) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = event.location,
+                        text = event.venue,
                         style = TextStyle(
                             color = Color(0xFF747688),
                             fontSize = 12.sp,

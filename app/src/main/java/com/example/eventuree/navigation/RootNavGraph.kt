@@ -9,6 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.eventuree.ui.HomeScreen
 import com.example.eventuree.viewmodels.AuthViewModel
+import com.example.eventuree.viewmodels.ExploreViewModel
+import com.example.eventuree.viewmodels.HomeViewModel
 import com.example.eventuree.viewmodels.PrefsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -17,12 +19,15 @@ fun RootNavGraph(navController: NavHostController, startDestination : String) {
 
     val authViewModel : AuthViewModel = hiltViewModel()
     val prefsViewModel: PrefsViewModel = hiltViewModel()
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val exploreViewModel: ExploreViewModel = hiltViewModel()
+
     NavHost(
         navController = navController,
         startDestination = startDestination
     ){
         composable(route = NavRoutes.Main.route) {
-            HomeScreen()
+            HomeScreen(homeViewModel,exploreViewModel)
         }
         onboardingNavGraph(navController,authViewModel, prefsViewModel)
     }

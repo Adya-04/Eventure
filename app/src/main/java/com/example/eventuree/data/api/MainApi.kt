@@ -3,7 +3,7 @@ package com.example.eventuree.data.api
 import com.example.eventuree.data.models.FollowSocietyRequest
 import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.data.models.GetUserDetailsResponse
-import com.example.eventuree.data.models.PersonalizedEventsResponse
+import com.example.eventuree.data.models.EventsResponse
 import com.example.eventuree.data.models.getAllSocietiesResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -17,7 +17,7 @@ interface MainApi {
     suspend fun getPersonalizedEvents(
         @Query("page") page: Int,
         @Query("limit") limit: Int
-    ): Response<PersonalizedEventsResponse>
+    ): Response<EventsResponse>
 
     @GET("society/all")
     suspend fun getAllSocieties(): Response<getAllSocietiesResponse>
@@ -31,4 +31,20 @@ interface MainApi {
     suspend fun getUserDetails(
         @Path("id") id: String
     ): Response<GetUserDetailsResponse>
+
+    @GET("event/all")
+    suspend fun getAllEvents(
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
+    ): Response<EventsResponse>
+
+    @GET("event/trending")
+    suspend fun getTrendingEvents(): Response<EventsResponse>
+
+    @GET("search/filter")
+    suspend fun getFilteredEvents(
+        @Query("type") type: String,
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
+    ): Response<EventsResponse>
 }

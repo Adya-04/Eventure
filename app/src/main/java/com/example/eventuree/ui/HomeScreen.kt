@@ -80,12 +80,16 @@ import com.example.eventuree.ui.theme.Montserrat
 import com.example.eventuree.utils.NetworkResult
 import com.example.eventuree.utils.getDay
 import com.example.eventuree.utils.getMonth
+import com.example.eventuree.viewmodels.ExploreViewModel
 import com.example.eventuree.viewmodels.HomeViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    homeViewModel: HomeViewModel,
+    exploreViewModel: ExploreViewModel
+) {
 
     var selectedItemIndex by rememberSaveable {
         mutableStateOf(0)
@@ -98,7 +102,7 @@ fun HomeScreen() {
             title = "For You",
             selectedIcon = R.drawable.home_selected_icon,
             unselectedIcon = R.drawable.home_unselected_icon,
-            screen = { ScreenContent() },
+            screen = { ScreenContent(homeViewModel = homeViewModel) },
             topBar = {
                 TopBar(
                     title = "", onOpenDrawer = {
@@ -112,7 +116,7 @@ fun HomeScreen() {
             title = "Explore",
             selectedIcon = R.drawable.explore_sel_icon,
             unselectedIcon = R.drawable.explore_unsel_icon,
-            screen = { ExploreScreen() },
+            screen = { ExploreScreen(exploreViewModel) },
             topBar = {
                 TopBar(
                     title = " Explore", onOpenDrawer = {
@@ -137,7 +141,12 @@ fun HomeScreen() {
             title = "Profile",
             selectedIcon = R.drawable.profile_sel_icon,
             unselectedIcon = R.drawable.profile_unsel_icon,
-            screen = { ProfileScreen(prefsViewModel = hiltViewModel(), profileViewModel = hiltViewModel()) },
+            screen = {
+                ProfileScreen(
+                    prefsViewModel = hiltViewModel(),
+                    profileViewModel = hiltViewModel()
+                )
+            },
             topBar = {
                 TopBar(title = " Profile", onOpenDrawer = {
                     scope.launch { drawerState.open() }
@@ -330,8 +339,7 @@ fun TopBar(
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenContent() {
-    val homeViewModel: HomeViewModel = hiltViewModel()
+fun ScreenContent(homeViewModel: HomeViewModel) {
     val uiState by homeViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -409,8 +417,17 @@ fun ScreenContent() {
             else -> {
                 // Personalized Events
                 uiState.personalizedEvents?.let { data ->
+                    val eventsList = data.events
+                    if (eventsList.isNullOrEmpty()) {
+                        Text(
+                            text = "You've no personalized events",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
                     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
-                        data.events?.let { eventsList ->
                             items(eventsList.size) { index ->
                                 val event = eventsList[index]
                                 EventCard(
@@ -732,7 +749,7 @@ fun CategoryCirclewithFollow(
         ) {
             // Load logo from URL
             AsyncImage(
-                model =  if (logoUrl.isNotEmpty()) logoUrl else R.drawable.event_img,
+                model = if (logoUrl.isNotEmpty()) logoUrl else R.drawable.event_img,
                 contentDescription = name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

@@ -3,7 +3,6 @@ package com.example.eventuree.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.eventuree.data.models.EventsResponse
-import com.example.eventuree.data.models.getAllSocietiesResponse
 import com.example.eventuree.data.repository.MainRepository
 import com.example.eventuree.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,42 +11,43 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// UI State for Home Screen
-data class HomeUiState(
+data class ExploreUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val personalizedEvents: EventsResponse? = null,
-    val societies: getAllSocietiesResponse? = null,
-    val userMessage: String? = null
+    val allEvents: EventsResponse? = null,
+    val trendingEvents: EventsResponse? = null,
+    val technicalEvents: EventsResponse? = null,
+    val culturalEvents: EventsResponse? = null,
+    val selectedCategory: String = "All"
 )
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(
-    private val mainRepository: MainRepository,
+class ExploreViewModel @Inject constructor(
+    private val mainRepository: MainRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState())
-    val uiState: StateFlow<HomeUiState> = _uiState
+    private val _uiState = MutableStateFlow(ExploreUiState())
+    val uiState: StateFlow<ExploreUiState> = _uiState
 
     init {
-        loadInitialData()
+        fetchAllEvents(1, 10)
     }
 
-    private fun loadInitialData() {
-        fetchPersonalizedEvents(1, 10)
-        fetchAllSocieties()
-    }
+    fun fetchAllEvents(page: Int, limit: Int) {
 
-    fun fetchPersonalizedEvents(page: Int, limit: Int) {
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            allEvents = null,
+            errorMessage = null,
+            selectedCategory = "All"
+        )
 
         viewModelScope.launch {
-            when (val result = mainRepository.fetchPersonalizedEvents(page, limit)) {
+            when (val result = mainRepository.fetchAllEvents(page, limit)) {
                 is NetworkResult.Success -> {
-                    _uiState.value = HomeUiState(
+                    _uiState.value = ExploreUiState(
                         isLoading = false,
-                        personalizedEvents = result.data,
-                        societies = _uiState.value.societies
+                        allEvents = result.data
                     )
                 }
                 is NetworkResult.Error -> {
@@ -64,16 +64,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun fetchAllSocieties() {
-        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+    fun fetchTrendingEvents() {
+
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            trendingEvents = null,
+            errorMessage = null,
+            selectedCategory = "Trending"
+        )
 
         viewModelScope.launch {
-            when (val result = mainRepository.fetchAllSocieties()) {
+            when (val result = mainRepository.fetchTrendingEvents()) {
                 is NetworkResult.Success -> {
-                    _uiState.value = HomeUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        personalizedEvents = _uiState.value.personalizedEvents,
-                        societies = result.data
+                        trendingEvents = result.data
                     )
                 }
                 is NetworkResult.Error -> {
@@ -90,30 +95,37 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun followSociety(societyId: String) {
+    fun fetchFilteredEvents(type: String, page: Int, limit: Int) {
+
+        val category = if (type == "technical") "Technical" else "Cultural"
+
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            errorMessage = null,
+            selectedCategory = category
+        )
+
         viewModelScope.launch {
-            when (val result = mainRepository.followSociety(societyId)) {
+            when (val result = mainRepository.fetchFilteredEvents(type, page, limit)) {
                 is NetworkResult.Success -> {
-                    // Refresh societies list to get updated follow status
-                    fetchAllSocieties()
                     _uiState.value = _uiState.value.copy(
-                        userMessage = result.data?.message ?: "Followed successfully"
+                        isLoading = false,
+                        culturalEvents = result.data
                     )
                 }
                 is NetworkResult.Error -> {
                     _uiState.value = _uiState.value.copy(
-                        userMessage = result.message
+                        isLoading = false,
+                        errorMessage = result.message
                     )
                 }
+
                 is NetworkResult.Loading -> {
                     _uiState.value = _uiState.value.copy(isLoading = true)
                 }
+
                 is NetworkResult.Start<*> -> {}
             }
         }
-    }
-
-    fun userMessageShown() {
-        _uiState.value = _uiState.value.copy(userMessage = null)
     }
 }

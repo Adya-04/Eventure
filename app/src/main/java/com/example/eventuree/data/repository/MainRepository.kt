@@ -5,7 +5,7 @@ import com.example.eventuree.data.api.MainApi
 import com.example.eventuree.data.models.FollowSocietyRequest
 import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.data.models.GetUserDetailsResponse
-import com.example.eventuree.data.models.PersonalizedEventsResponse
+import com.example.eventuree.data.models.EventsResponse
 import com.example.eventuree.data.models.getAllSocietiesResponse
 import com.example.eventuree.utils.NetworkResult
 import org.json.JSONObject
@@ -18,7 +18,7 @@ class MainRepository @Inject constructor(private val mainApi: MainApi) {
     suspend fun fetchPersonalizedEvents(
         page: Int,
         limit: Int
-    ): NetworkResult<PersonalizedEventsResponse> {
+    ): NetworkResult<EventsResponse> {
         return try {
             val response = mainApi.getPersonalizedEvents(page, limit)
             Log.d("MainAPICall", "$response")
@@ -87,6 +87,68 @@ class MainRepository @Inject constructor(private val mainApi: MainApi) {
                 } else {
                     NetworkResult.Error("Response body is null")
                 }
+            } else {
+                val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
+                NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
+            }
+        } catch (e: SocketTimeoutException) {
+            NetworkResult.Error("Please try again!")
+        } catch (e: Exception) {
+            NetworkResult.Error("Unexpected error occurred")
+        }
+    }
+
+    suspend fun fetchAllEvents(
+        page: Int,
+        limit: Int
+    ): NetworkResult<EventsResponse> {
+        return try {
+            val response = mainApi.getAllEvents(page, limit)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    NetworkResult.Success(it)
+                } ?: NetworkResult.Error("Response body is null")
+            } else {
+                val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
+                NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
+            }
+        } catch (e: SocketTimeoutException) {
+            NetworkResult.Error("Please try again!")
+        } catch (e: Exception) {
+            NetworkResult.Error("Unexpected error occurred")
+        }
+    }
+
+
+    suspend fun fetchTrendingEvents(): NetworkResult<EventsResponse> {
+        return try {
+            val response = mainApi.getTrendingEvents()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    NetworkResult.Success(it)
+                } ?: NetworkResult.Error("Response body is null")
+            } else {
+                val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
+                NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
+            }
+        } catch (e: SocketTimeoutException) {
+            NetworkResult.Error("Please try again!")
+        } catch (e: Exception) {
+            NetworkResult.Error("Unexpected error occurred")
+        }
+    }
+
+    suspend fun fetchFilteredEvents(
+        type: String,
+        page: Int,
+        limit: Int
+    ): NetworkResult<EventsResponse> {
+        return try {
+            val response = mainApi.getFilteredEvents(type, page, limit)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    NetworkResult.Success(it)
+                } ?: NetworkResult.Error("Response body is null")
             } else {
                 val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
                 NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
