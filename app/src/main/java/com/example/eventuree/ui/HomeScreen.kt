@@ -6,14 +6,12 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,29 +29,16 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,278 +53,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.example.eventuree.ui.theme.BlueMainColor
-import com.example.eventuree.ui.theme.TopCardShape
-import kotlinx.coroutines.launch
 import com.example.eventuree.R
-import com.example.eventuree.data.models.BottomNavItem
-import com.example.eventuree.ui.components.MenuItem
+import com.example.eventuree.ui.theme.BlueMainColor
 import com.example.eventuree.ui.theme.Montserrat
-import com.example.eventuree.utils.NetworkResult
+import com.example.eventuree.ui.theme.TopCardShape
 import com.example.eventuree.utils.getDay
 import com.example.eventuree.utils.getMonth
-import com.example.eventuree.viewmodels.ExploreViewModel
 import com.example.eventuree.viewmodels.HomeViewModel
 
-@RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun HomeScreen(
-    homeViewModel: HomeViewModel,
-    exploreViewModel: ExploreViewModel
-) {
-
-    var selectedItemIndex by rememberSaveable {
-        mutableStateOf(0)
-    }
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-    val items = listOf(
-        BottomNavItem(
-            title = "For You",
-            selectedIcon = R.drawable.home_selected_icon,
-            unselectedIcon = R.drawable.home_unselected_icon,
-            screen = { ScreenContent(homeViewModel = homeViewModel) },
-            topBar = {
-                TopBar(
-                    title = "", onOpenDrawer = {
-                        scope.launch { drawerState.open() }
-                    },
-                    actionIconResId = R.drawable.notification_icon
-                )
-            }
-        ),
-        BottomNavItem(
-            title = "Explore",
-            selectedIcon = R.drawable.explore_sel_icon,
-            unselectedIcon = R.drawable.explore_unsel_icon,
-            screen = { ExploreScreen(exploreViewModel) },
-            topBar = {
-                TopBar(
-                    title = " Explore", onOpenDrawer = {
-                        scope.launch { drawerState.open() }
-                    },
-                    actionIconResId = R.drawable.search
-                )
-            }
-        ),
-        BottomNavItem(
-            title = "My Events",
-            selectedIcon = R.drawable.event_sel_icon,
-            unselectedIcon = R.drawable.event_unsel_icon,
-            screen = { MyEventsScreen() },
-            topBar = {
-                TopBar(title = " My Events", onOpenDrawer = {
-                    scope.launch { drawerState.open() }
-                })
-            }
-        ),
-        BottomNavItem(
-            title = "Profile",
-            selectedIcon = R.drawable.profile_sel_icon,
-            unselectedIcon = R.drawable.profile_unsel_icon,
-            screen = {
-                ProfileScreen(
-                    prefsViewModel = hiltViewModel(),
-                    profileViewModel = hiltViewModel()
-                )
-            },
-            topBar = {
-                TopBar(title = " Profile", onOpenDrawer = {
-                    scope.launch { drawerState.open() }
-                })
-            }
-        )
-    )
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerShape = RoundedCornerShape(
-                    topEnd = 16.dp,
-                    bottomEnd = 16.dp
-                ),
-                drawerContainerColor = BlueMainColor
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(250.dp)
-                        .background(BlueMainColor)
-                ) {
-                    DrawerContent()
-                }
-            }
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                items[selectedItemIndex].topBar()
-            },
-            bottomBar = {
-                NavigationBar(containerColor = Color.White) {
-                    items.forEachIndexed { index, item ->
-                        NavigationBarItem(
-                            selected = selectedItemIndex == index,
-                            onClick = {
-                                selectedItemIndex = index
-                            },
-                            icon = {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    val iconRes =
-                                        if (selectedItemIndex == index) item.selectedIcon else item.unselectedIcon
-                                    Icon(
-                                        painter = painterResource(id = iconRes),
-                                        contentDescription = item.title,
-                                        tint = null
-                                    )
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text = item.title,
-                                        style = TextStyle(
-                                            fontSize = 14.sp,
-                                            fontFamily = Montserrat,
-                                            fontWeight = FontWeight.Normal
-                                        ),
-                                        color = if (selectedItemIndex == index) Color.Black else Color.Gray
-                                    )
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Color.Transparent,
-                                selectedIconColor = Color.Unspecified,
-                                unselectedIconColor = Color.Unspecified
-                            ),
-                            modifier = Modifier
-                                .height(80.dp)
-                                // Add this to control the shape of the selection indicator
-                                .padding(8.dp)
-                                .background(
-                                    if (selectedItemIndex == index) Color.LightGray.copy(alpha = 0.4f) else Color.Transparent,
-                                    shape = RoundedCornerShape(6.dp) // Adjust this value to make corners less rounded
-                                )
-                        )
-                    }
-                }
-            }
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                items[selectedItemIndex].screen()
-            }
-        }
-    }
-}
-
-@Composable
-fun DrawerContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(18.dp)
-    ) {
-        Spacer(Modifier.height(20.dp))
-
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.profile_icon),
-                contentDescription = "Profile",
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = "Adya Singh",
-            style = TextStyle(
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = Montserrat,
-                color = Color.White
-            )
-        )
-        Spacer(Modifier.height(40.dp))
-
-        MenuItem("My Profile", R.drawable.my_profile_icon)
-        Spacer(Modifier.height(25.dp))
-        MenuItem("Calendar", R.drawable.calendar_icon)
-        Spacer(Modifier.height(25.dp))
-        MenuItem("Bookmark", R.drawable.bookmark_icon)
-        Spacer(Modifier.height(25.dp))
-        MenuItem("Sign Out", R.drawable.signout_icon)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TopBar(
-    title: String = "", onOpenDrawer: () -> Unit,
-    actionIconResId: Int? = null
-) {
-    Box(
-        modifier = Modifier
-            .background(BlueMainColor)
-    ) {
-        TopAppBar(
-            navigationIcon = {
-                Icon(
-                    painter = painterResource(R.drawable.menu_icon),
-                    contentDescription = "Menu",
-                    modifier = Modifier
-                        .size(35.dp)
-                        .padding(start = 12.dp)
-                        .clickable {
-                            onOpenDrawer()
-                        },
-                    tint = Color.White
-                )
-            },
-            title = {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontFamily = Montserrat,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(start = 10.dp)
-                )
-            },
-            actions = {
-                actionIconResId?.let {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(
-                            painter = painterResource(it),
-                            contentDescription = "Action Icon",
-                            tint = null
-                        )
-                    }
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            )
-        )
-    }
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenContent(homeViewModel: HomeViewModel) {
+fun HomeScreen(homeViewModel: HomeViewModel) {
     val uiState by homeViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -427,7 +154,7 @@ fun ScreenContent(homeViewModel: HomeViewModel) {
                             textAlign = TextAlign.Center
                         )
                     } else {
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
+                        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp)) {
                             items(eventsList.size) { index ->
                                 val event = eventsList[index]
                                 EventCard(
@@ -790,5 +517,3 @@ fun CategoryCirclewithFollow(
         }
     }
 }
-
-

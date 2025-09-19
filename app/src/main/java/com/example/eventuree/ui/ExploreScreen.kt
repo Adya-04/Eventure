@@ -53,7 +53,10 @@ import com.example.eventuree.viewmodels.ExploreViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ExploreScreen(exploreViewModel: ExploreViewModel) {
+fun ExploreScreen(
+    exploreViewModel: ExploreViewModel,
+    onEventClick: (Events) -> Unit
+) {
 
     val uiState by exploreViewModel.uiState.collectAsState()
 
@@ -118,9 +121,9 @@ fun ExploreScreen(exploreViewModel: ExploreViewModel) {
                         textAlign = TextAlign.Center
                     )
                 } else {
-                    LazyColumn {
+                    LazyColumn(Modifier.padding(horizontal = 16.dp)) {
                         items(eventsList.size) { index ->
-                            EventItem(event = eventsList[index])
+                            EventItem(event = eventsList[index], onClick = onEventClick)
                         }
                     }
                 }
@@ -179,13 +182,14 @@ fun CategoryChips(onCategorySelected: (String) -> Unit) {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventItem(event: Events) {
+fun EventItem(event: Events, onClick: (Events) -> Unit) {
     val formattedDate = formatEventDate(event.startTime)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 6.dp)
+            .clickable { onClick(event) },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {

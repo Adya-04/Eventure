@@ -7,10 +7,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.eventuree.ui.HomeScreen
+import com.example.eventuree.data.models.Events
+import com.example.eventuree.ui.EventDetailsScreen
+import com.example.eventuree.ui.MainScreen
 import com.example.eventuree.viewmodels.AuthViewModel
-import com.example.eventuree.viewmodels.ExploreViewModel
-import com.example.eventuree.viewmodels.HomeViewModel
 import com.example.eventuree.viewmodels.PrefsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -19,16 +19,25 @@ fun RootNavGraph(navController: NavHostController, startDestination : String) {
 
     val authViewModel : AuthViewModel = hiltViewModel()
     val prefsViewModel: PrefsViewModel = hiltViewModel()
-    val homeViewModel: HomeViewModel = hiltViewModel()
-    val exploreViewModel: ExploreViewModel = hiltViewModel()
 
     NavHost(
         navController = navController,
         startDestination = startDestination
     ){
         composable(route = NavRoutes.Main.route) {
-            HomeScreen(homeViewModel,exploreViewModel)
+            MainScreen()
         }
+
+        composable(route = NavRoutes.EventDetails.route) { backStackEntry ->
+            val event = navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.get<Events>("event")
+
+            event?.let {
+                EventDetailsScreen(event = it)
+            }
+        }
+
         onboardingNavGraph(navController,authViewModel, prefsViewModel)
     }
 }
@@ -36,5 +45,12 @@ fun RootNavGraph(navController: NavHostController, startDestination : String) {
 sealed class NavRoutes(val route: String) {
     data object Onboarding : NavRoutes("onboarding_graph")
     data object Main : NavRoutes("main_graph")
-//    data object SplashScreen : NavRoutes("splash_screen")
+    data object EventDetails : NavRoutes("event_details/{eventId}") {
+        fun createRoute(eventId: String) = "event_details/$eventId"
+    }
+    data object MyEvents : NavRoutes("my_events")
+    data object Explore : NavRoutes("explore")
+    data object Profile : NavRoutes("profile")
+    data object ForYou : NavRoutes("for_you")
+
 }

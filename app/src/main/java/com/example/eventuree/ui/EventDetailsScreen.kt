@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +40,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import coil.compose.AsyncImage
 import com.example.eventuree.R
+import com.example.eventuree.data.models.Events
 import com.example.eventuree.ui.components.NextButton
 import com.example.eventuree.ui.theme.Montserrat
 
@@ -56,18 +59,29 @@ data class EventDetails(
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview
 @Composable
-fun EventDetailsScreen() {
+fun EventDetailsScreen(event: Events) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Header Image
-        Image(
-            painter = painterResource(id = R.drawable.event_img),
+//        Image(
+//            painter = painterResource(id = R.drawable.event_img),
+//            contentDescription = "Event Banner",
+//            contentScale = ContentScale.Crop,
+//            modifier = Modifier
+//                .height(280.dp)
+//                .fillMaxWidth()
+//        )
+        val imageModel = if (event.eventPic.isNullOrEmpty()) {
+            R.drawable.event_img // <-- your default drawable
+        } else {
+            event.eventPic
+        }
+        AsyncImage(
+            model = imageModel,
             contentDescription = "Event Banner",
-            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .height(280.dp)
-                .fillMaxWidth()
+                .height(280.dp).fillMaxWidth(),
+            contentScale = ContentScale.Crop
         )
         Row(
             modifier = Modifier
@@ -119,7 +133,7 @@ fun EventDetailsScreen() {
         ) {
             // Event Title
             Text(
-                "International Band Music Concert",
+                event.name,
                 modifier = Modifier
                     .padding(top = 36.dp)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -133,7 +147,7 @@ fun EventDetailsScreen() {
 
             // Date & Time
             InfoRow(
-                iconPainter = painterResource(id = R.drawable.dateandtime_event_info), // your SVG drawable
+                iconPainter = painterResource(id = R.drawable.location_event_info), // your SVG drawable
                 title = "14 December, 2021",
                 subtitle = "Tuesday, 4:00PM - 9:00PM"
             )
@@ -153,9 +167,9 @@ fun EventDetailsScreen() {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.dummy),
-                    contentDescription = "Organizer",
+                AsyncImage(
+                    model = event.society.logo,
+                    contentDescription = "Society logo",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
@@ -166,7 +180,7 @@ fun EventDetailsScreen() {
                         .padding(start = 12.dp)
                         .weight(1f)
                 ) {
-                    Text("Ashfaq Sayem", fontWeight = FontWeight.SemiBold)
+                    Text(event.society.name, fontWeight = FontWeight.SemiBold)
                     Text("Organizer", color = Color.Gray, fontSize = 12.sp)
                 }
 
@@ -200,7 +214,7 @@ fun EventDetailsScreen() {
                     ))
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Enjoy your favorite dishes and a lovely time with your friends and family. Food from local food trucks will be available for purchase.",
+                    text = event.description,
                     color = Color.Gray,
                     fontSize = 14.sp,
                     lineHeight = 20.sp

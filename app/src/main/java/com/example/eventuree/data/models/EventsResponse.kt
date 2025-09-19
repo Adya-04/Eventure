@@ -6,9 +6,12 @@ data class EventsResponse(
 )
 
 data class Events(
+    val id: String,
     val name: String,
     val venue: String,
+    val description: String,
     val startTime: String,
     val goingCount: Int,
-    val eventPic: String
+    val eventPic: String,
+    val society: Society
 )
