@@ -6,6 +6,7 @@ import com.example.eventuree.data.models.FollowSocietyRequest
 import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.data.models.GetUserDetailsResponse
 import com.example.eventuree.data.models.EventsResponse
+import com.example.eventuree.data.models.SingleEventResponse
 import com.example.eventuree.data.models.getAllSocietiesResponse
 import com.example.eventuree.utils.NetworkResult
 import org.json.JSONObject
@@ -145,6 +146,24 @@ class MainRepository @Inject constructor(private val mainApi: MainApi) {
     ): NetworkResult<EventsResponse> {
         return try {
             val response = mainApi.getFilteredEvents(type, page, limit)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    NetworkResult.Success(it)
+                } ?: NetworkResult.Error("Response body is null")
+            } else {
+                val errObj = response.errorBody()?.charStream()?.readText()?.let { JSONObject(it) }
+                NetworkResult.Error(errObj?.getString("message") ?: "Something went wrong")
+            }
+        } catch (e: SocketTimeoutException) {
+            NetworkResult.Error("Please try again!")
+        } catch (e: Exception) {
+            NetworkResult.Error("Unexpected error occurred")
+        }
+    }
+
+    suspend fun fetchEventDetails(id: String): NetworkResult<SingleEventResponse> {
+        return try {
+            val response = mainApi.getEventDetails(id)
             if (response.isSuccessful) {
                 response.body()?.let {
                     NetworkResult.Success(it)

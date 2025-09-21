@@ -11,6 +11,7 @@ import com.example.eventuree.data.models.Events
 import com.example.eventuree.ui.EventDetailsScreen
 import com.example.eventuree.ui.MainScreen
 import com.example.eventuree.viewmodels.AuthViewModel
+import com.example.eventuree.viewmodels.EventDetailsViewModel
 import com.example.eventuree.viewmodels.PrefsViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -25,17 +26,18 @@ fun RootNavGraph(navController: NavHostController, startDestination : String) {
         startDestination = startDestination
     ){
         composable(route = NavRoutes.Main.route) {
-            MainScreen()
+            MainScreen(rootNavController = navController)
         }
 
-        composable(route = NavRoutes.EventDetails.route) { backStackEntry ->
-            val event = navController.previousBackStackEntry
-                ?.savedStateHandle
-                ?.get<Events>("event")
-
-            event?.let {
-                EventDetailsScreen(event = it)
-            }
+        composable(
+            route = NavRoutes.EventDetails.route
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+            val eventDetailsViewModel: EventDetailsViewModel = hiltViewModel()
+            EventDetailsScreen(
+                eventId = eventId,
+                eventDetailsViewModel = eventDetailsViewModel
+            )
         }
 
         onboardingNavGraph(navController,authViewModel, prefsViewModel)

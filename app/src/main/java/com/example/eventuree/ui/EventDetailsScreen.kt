@@ -1,5 +1,7 @@
 package com.example.eventuree.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,10 +25,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +51,9 @@ import com.example.eventuree.R
 import com.example.eventuree.data.models.Events
 import com.example.eventuree.ui.components.NextButton
 import com.example.eventuree.ui.theme.Montserrat
+import com.example.eventuree.viewmodels.EventDetailsViewModel
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 data class EventDetails(
     val imageRes: Int,
@@ -58,29 +67,73 @@ data class EventDetails(
     val description: String
 )
 
+@Composable
+fun EventDetailsScreen(
+    eventId: String,
+    eventDetailsViewModel: EventDetailsViewModel
+) {
+    // Trigger API call when this screen becomes visible
+    LaunchedEffect(eventId) {
+        eventDetailsViewModel.fetchEventDetails(eventId)
+    }
+
+    // Observe UI state from ViewModel
+    val uiState by eventDetailsViewModel.uiState.collectAsState()
+
+    when {
+        uiState.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
+
+        uiState.errorMessage != null -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Error: ${uiState.errorMessage}",
+                    color = Color.Red
+                )
+            }
+        }
+
+        uiState.eventDetails != null -> {
+            // Use the single event object from SingleEventResponse
+            val event = uiState.eventDetails?.event
+            event?.let {
+                EventDetailsContent(event = it)
+            } ?: run {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Event not found")
+                }
+            }
+        }
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventDetailsScreen(event: Events) {
+fun EventDetailsContent(event: Events) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Header Image
-//        Image(
-//            painter = painterResource(id = R.drawable.event_img),
-//            contentDescription = "Event Banner",
-//            contentScale = ContentScale.Crop,
-//            modifier = Modifier
-//                .height(280.dp)
-//                .fillMaxWidth()
-//        )
-        val imageModel = if (event.eventPic.isNullOrEmpty()) {
-            R.drawable.event_img // <-- your default drawable
-        } else {
-            event.eventPic
-        }
+
+        val eventImage = event.eventPic ?: ""
+
         AsyncImage(
-            model = imageModel,
+            model = if (eventImage.isEmpty()) R.drawable.event_img else eventImage,
             contentDescription = "Event Banner",
             modifier = Modifier
-                .height(280.dp).fillMaxWidth(),
+                .height(280.dp)
+                .fillMaxWidth(),
             contentScale = ContentScale.Crop
         )
         Row(
@@ -146,18 +199,14 @@ fun EventDetailsScreen(event: Events) {
             )
 
             // Date & Time
-            InfoRow(
-                iconPainter = painterResource(id = R.drawable.location_event_info), // your SVG drawable
-                title = "14 December, 2021",
-                subtitle = "Tuesday, 4:00PM - 9:00PM"
-            )
+            EventDateTimeRow(event = event)
 
 
             // Location
             InfoRow(
                 iconPainter = painterResource(id = R.drawable.location_event_info),
-                title = "Gala Convention Center",
-                subtitle = "36 Guild Street London, UK"
+                title =event.venue,
+                subtitle = "More Info"
             )
 
             // Organizer
@@ -167,8 +216,10 @@ fun EventDetailsScreen(event: Events) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val societyLogo = event.society.logo ?: ""
+
                 AsyncImage(
-                    model = event.society.logo,
+                    model = if (societyLogo.isEmpty()) R.drawable.event_img else societyLogo,
                     contentDescription = "Society logo",
                     modifier = Modifier
                         .size(40.dp)
@@ -205,13 +256,15 @@ fun EventDetailsScreen(event: Events) {
 
             // About Event
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                Text("About Event",
+                Text(
+                    "About Event",
                     style = TextStyle(
                         color = Color.Black,
                         fontSize = 18.sp,
                         fontFamily = Montserrat,
                         fontWeight = FontWeight.Medium
-                    ))
+                    )
+                )
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = event.description,
@@ -223,7 +276,7 @@ fun EventDetailsScreen(event: Events) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Box(modifier = Modifier.padding(18.dp)){
+            Box(modifier = Modifier.padding(18.dp)) {
                 NextButton(
                     text = "RSVP NOW",
                     enabled = true,
@@ -335,6 +388,24 @@ fun OverlappingImages() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun EventDateTimeRow(event: Events) {
+    val zonedStart = ZonedDateTime.parse(event.startTime)
+    val zonedEnd = ZonedDateTime.parse(event.endTime)
+
+    val day = zonedStart.format(DateTimeFormatter.ofPattern("dd")) // "14"
+    val monthYear = zonedStart.format(DateTimeFormatter.ofPattern("MMMM, yyyy")) // "December, 2025"
+    val dayOfWeek = zonedStart.format(DateTimeFormatter.ofPattern("EEEE")) // "Tuesday"
+    val startTime = zonedStart.format(DateTimeFormatter.ofPattern("h:mm a")) // "10:00 AM"
+    val endTime = zonedEnd.format(DateTimeFormatter.ofPattern("h:mm a")) // "6:00 PM"
+
+    InfoRow(
+        iconPainter = painterResource(id = R.drawable.location_event_info),
+        title = "$day $monthYear",
+        subtitle = "$dayOfWeek, $startTime - $endTime"
+    )
+}
 
 @Composable
 fun InfoRow(iconPainter: Painter, title: String, subtitle: String) {

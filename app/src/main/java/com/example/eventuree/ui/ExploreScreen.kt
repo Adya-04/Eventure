@@ -41,12 +41,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.eventuree.ui.theme.BlueMainColor
 import com.example.eventuree.ui.theme.TopCardShape
 import com.example.eventuree.R
 import com.example.eventuree.data.models.EventItem
 import com.example.eventuree.data.models.Events
+import com.example.eventuree.navigation.NavRoutes
 import com.example.eventuree.ui.theme.Montserrat
 import com.example.eventuree.utils.formatEventDate
 import com.example.eventuree.viewmodels.ExploreViewModel
@@ -55,7 +57,7 @@ import com.example.eventuree.viewmodels.ExploreViewModel
 @Composable
 fun ExploreScreen(
     exploreViewModel: ExploreViewModel,
-    onEventClick: (Events) -> Unit
+    navController: NavController
 ) {
 
     val uiState by exploreViewModel.uiState.collectAsState()
@@ -123,7 +125,12 @@ fun ExploreScreen(
                 } else {
                     LazyColumn(Modifier.padding(horizontal = 16.dp)) {
                         items(eventsList.size) { index ->
-                            EventItem(event = eventsList[index], onClick = onEventClick)
+                            EventItem(event = eventsList[index], onClick = { clickedEvent ->
+
+                                navController.navigate(NavRoutes.EventDetails.createRoute(clickedEvent.id))
+
+                            }
+                            )
                         }
                     }
                 }

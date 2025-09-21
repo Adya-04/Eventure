@@ -31,7 +31,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,53 +44,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.createGraph
 import com.example.eventuree.ui.theme.BlueMainColor
 import kotlinx.coroutines.launch
 import com.example.eventuree.R
 import com.example.eventuree.data.models.BottomNavItem
+import com.example.eventuree.navigation.NavRoutes
 import com.example.eventuree.ui.components.MenuItem
 import com.example.eventuree.ui.theme.Montserrat
+import com.example.eventuree.viewmodels.EventDetailsViewModel
 import com.example.eventuree.viewmodels.ExploreViewModel
 import com.example.eventuree.viewmodels.HomeViewModel
+import com.example.eventuree.viewmodels.PrefsViewModel
+import com.example.eventuree.viewmodels.ProfileViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
-
-    val navController = rememberNavController()
+fun MainScreen(rootNavController: NavHostController) {
 
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val selectedNavigationIndex = rememberSaveable {
+        mutableIntStateOf(0)
+    }
+    val navController = rememberNavController()
 
     val items = listOf(
         BottomNavItem(
             title = "For You",
             selectedIcon = R.drawable.home_selected_icon,
             unselectedIcon = R.drawable.home_unselected_icon,
-            route = "home"
+            route = NavRoutes.ForYou.route
         ),
         BottomNavItem(
             title = "Explore",
             selectedIcon = R.drawable.explore_sel_icon,
             unselectedIcon = R.drawable.explore_unsel_icon,
-            route = "explore"
+            route = NavRoutes.Explore.route
         ),
         BottomNavItem(
             title = "My Events",
             selectedIcon = R.drawable.event_sel_icon,
             unselectedIcon = R.drawable.event_unsel_icon,
-            route = "my_events"
+            route = NavRoutes.MyEvents.route
         ),
         BottomNavItem(
             title = "Profile",
             selectedIcon = R.drawable.profile_sel_icon,
             unselectedIcon = R.drawable.profile_unsel_icon,
-            route = "profile"
+            route = NavRoutes.Profile.route
         )
     )
 
@@ -123,15 +133,18 @@ fun MainScreen() {
                         onOpenDrawer = { scope.launch { drawerState.open() } },
                         actionIconResId = R.drawable.notification_icon
                     )
+
                     "explore" -> TopBar(
                         title = "Explore",
                         onOpenDrawer = { scope.launch { drawerState.open() } },
                         actionIconResId = R.drawable.search
                     )
+
                     "my_events" -> TopBar(
                         title = "My Events",
                         onOpenDrawer = { scope.launch { drawerState.open() } }
                     )
+
                     "profile" -> TopBar(
                         title = "Profile",
                         onOpenDrawer = { scope.launch { drawerState.open() } }
@@ -140,26 +153,21 @@ fun MainScreen() {
             },
             bottomBar = {
                 NavigationBar(containerColor = Color.White) {
-                    val currentDestination =
-                        navController.currentBackStackEntryAsState().value?.destination?.route
 
-                    items.forEach { item ->
-                        val selected = currentDestination == item.route
+                    items.forEachIndexed { index, item ->
+
                         NavigationBarItem(
-                            selected = selected,
+                            selected = selectedNavigationIndex.intValue == index,
                             onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                selectedNavigationIndex.intValue = index
+                                navController.navigate(item.route)
                             },
                             icon = {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     val iconRes =
-                                        if (selected) item.selectedIcon else item.unselectedIcon
+                                        if (selectedNavigationIndex.intValue == index)
+                                            item.selectedIcon
+                                        else item.unselectedIcon
                                     Icon(
                                         painter = painterResource(id = iconRes),
                                         contentDescription = item.title,
@@ -173,7 +181,7 @@ fun MainScreen() {
                                             fontFamily = Montserrat,
                                             fontWeight = FontWeight.Normal
                                         ),
-                                        color = if (selected) Color.Black else Color.Gray
+                                        color = if (selectedNavigationIndex.intValue == index) Color.Black else Color.Gray
                                     )
                                 }
                             },
@@ -187,30 +195,41 @@ fun MainScreen() {
                     }
                 }
             }
-        ) { padding ->
+        ) { paddingValues ->
+            val graph =
+                navController.createGraph(startDestination = NavRoutes.ForYou.route) {
+                    composable(route = NavRoutes.ForYou.route) {
+                        val homeViewModel: HomeViewModel = hiltViewModel()
+                        HomeScreen(homeViewModel)
+                    }
+
+                    composable(route = NavRoutes.Profile.route) {
+                        val profileViewModel: ProfileViewModel = hiltViewModel()
+                        val prefsViewModel: PrefsViewModel = hiltViewModel()
+                        ProfileScreen(
+                            profileViewModel = profileViewModel,
+                            prefsViewModel = prefsViewModel
+                        )
+                    }
+
+                    composable(route = NavRoutes.Explore.route) {
+                        val exploreViewModel: ExploreViewModel = hiltViewModel()
+                        ExploreScreen(
+                            exploreViewModel = exploreViewModel,
+                            navController = rootNavController
+                        )
+                    }
+
+                    composable(route = NavRoutes.MyEvents.route) {
+                        MyEventsScreen()
+                    }
+                }
+
             NavHost(
                 navController = navController,
-                startDestination = "home",
-                modifier = Modifier.padding(padding)
-            ) {
-                composable("home") {
-                    val homeViewModel: HomeViewModel = hiltViewModel()
-                    HomeScreen(homeViewModel = homeViewModel)
-                }
-                composable("explore") {
-                    val exploreViewModel: ExploreViewModel = hiltViewModel()
-                    ExploreScreen(exploreViewModel, onEventClick = {})
-                }
-                composable("my_events") {
-                    MyEventsScreen()
-                }
-                composable("profile") {
-                    ProfileScreen(
-                        prefsViewModel = hiltViewModel(),
-                        profileViewModel = hiltViewModel()
-                    )
-                }
-            }
+                graph = graph,
+                modifier = Modifier.padding(paddingValues)
+            )
         }
     }
 }

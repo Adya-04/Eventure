@@ -4,6 +4,7 @@ import com.example.eventuree.data.models.FollowSocietyRequest
 import com.example.eventuree.data.models.FollowSocietyResponse
 import com.example.eventuree.data.models.GetUserDetailsResponse
 import com.example.eventuree.data.models.EventsResponse
+import com.example.eventuree.data.models.SingleEventResponse
 import com.example.eventuree.data.models.getAllSocietiesResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -47,4 +48,9 @@ interface MainApi {
         @Query("page") page: Int,
         @Query("limit") limit: Int
     ): Response<EventsResponse>
+
+    @GET("event/{id}")
+    suspend fun getEventDetails(
+        @Path("id") id: String
+    ): Response<SingleEventResponse>
 }
